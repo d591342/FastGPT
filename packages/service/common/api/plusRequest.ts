@@ -5,7 +5,7 @@ import axios, {
   AxiosRequestConfig
 } from 'axios';
 import { FastGPTProUrl } from '../system/constants';
-
+import { SERVICE_LOCAL_HOST } from '../system/tools';
 interface ConfigType {
   headers?: { [key: string]: string };
   hold?: boolean;
@@ -15,6 +15,7 @@ interface ResponseDataType {
   code: number;
   message: string;
   data: any;
+  result?: any;
 }
 
 /**
@@ -40,7 +41,7 @@ function checkRes(data: ResponseDataType) {
   } else if (data?.code && (data.code < 200 || data.code >= 400)) {
     return Promise.reject(data);
   }
-  return data.data;
+  return data.data || data.result;
 }
 
 /**
@@ -59,6 +60,7 @@ function responseError(err: any) {
   }
   return Promise.reject(err);
 }
+export const serverRequestBaseUrl = `http://${SERVICE_LOCAL_HOST}/api`;
 
 /* 创建请求实例 */
 const instance = axios.create({
@@ -76,10 +78,10 @@ instance.interceptors.request.use(requestStart, (err) => Promise.reject(err));
 instance.interceptors.response.use(responseSuccess, (err) => Promise.reject(err));
 
 export function request(url: string, data: any, config: ConfigType, method: Method): any {
-  if (!FastGPTProUrl) {
-    console.log('未部署商业版接口', url);
-    return Promise.reject('The The request was denied...');
-  }
+  // if (!FastGPTProUrl) {
+  //   console.log('未部署商业版接口', url);
+  //   return Promise.reject('The The request was denied...');
+  // }
 
   /* 去空 */
   for (const key in data) {
@@ -90,7 +92,7 @@ export function request(url: string, data: any, config: ConfigType, method: Meth
 
   return instance
     .request({
-      baseURL: FastGPTProUrl,
+      baseURL: FastGPTProUrl || serverRequestBaseUrl,
       url,
       method,
       data: ['POST', 'PUT'].includes(method) ? data : null,
@@ -127,5 +129,5 @@ export function DELETE<T = undefined>(url: string, data = {}, config: ConfigType
 export const plusRequest = (config: AxiosRequestConfig) =>
   instance.request({
     ...config,
-    baseURL: FastGPTProUrl
+    baseURL: FastGPTProUrl || serverRequestBaseUrl
   });
